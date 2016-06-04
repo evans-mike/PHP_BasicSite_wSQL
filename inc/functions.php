@@ -5,7 +5,11 @@ function full_catalog_array()
     include("connection.php");
     try
     {
-        $results = $db->query("SELECT title, category, img FROM Media");
+        $results = $db->query
+        ("
+            SELECT title, category, img 
+            FROM Media
+        ");
     }
     catch(Exception $e)
     {
@@ -15,6 +19,31 @@ function full_catalog_array()
     }
 
     $catalog = $results->fetchAll();
+    return $catalog;
+}
+
+function single_item_array($id)
+{
+    include("connection.php");
+    try
+    {
+        $results = $db->query
+        ("
+            SELECT title, category, img, format, year, genre, publisher, isbn
+            FROM Media
+            JOIN Genres ON Media.genre_id = Genres.genre_id
+            LEFT OUTER JOIN Books ON Media.media_id = Books.media_id
+            WHERE Media.media_id = $id
+        ");
+    }
+    catch(Exception $e)
+    {
+        echo "Unable to retrieve results.";
+        echo $e->getMessage();
+        exit;
+    }
+
+    $catalog = $results->fetch();
     return $catalog;
 }
 
