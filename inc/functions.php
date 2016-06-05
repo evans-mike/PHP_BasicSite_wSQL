@@ -45,8 +45,31 @@ function single_item_array($id)
         exit;
     }
 
-    $catalog = $results->fetch();
-    return $catalog;
+    $item = $results->fetch();
+    if (empty($item)) return $item; /*example of an early return*/
+    try
+    {
+        $results = $db->prepare
+        ("
+            SELECT fullname, role
+            FROM Media_People
+            JOIN People ON Media_People.people_id = People.people_id
+            WHERE Media_People.people_id = ?
+        ");
+        $results->bindParam(1,$id,PDO::PARAM_INT);
+        $results->execute();
+    }
+    catch(Exception $e)
+    {
+        echo "Unable to retrieve results.";
+        echo $e->getMessage();
+        exit;
+    }
+    while ($row = $results->fetch(PDO::FETCH_ASSOC))
+    {
+      $item[$row["role"]][] = $row["fullname"];
+    }
+    return $item;
 }
 
 function get_item_html($id,$item)
