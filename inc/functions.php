@@ -17,7 +17,6 @@ function full_catalog_array()
         echo $e->getMessage();
         exit;
     }
-
     $catalog = $results->fetchAll();
     return $catalog;
 }
