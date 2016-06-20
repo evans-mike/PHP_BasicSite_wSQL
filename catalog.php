@@ -3,6 +3,7 @@ include("inc/functions.php");
 
 $pageTitle = "Full Catalog";
 $section = null;
+$search = null;
 $items_per_page = 8;
 
 if (isset($_GET["cat"])) {
@@ -18,6 +19,11 @@ if (isset($_GET["cat"])) {
     }
 }
 
+if(isset($_GET["s"]))
+  {
+    $search = filter_input(INPUT_GET,"pg",FILTER_SANITIZE_STRING);
+  }
+
 if(isset($_GET["pg"]))
   {
     $current_page = filter_input(INPUT_GET,"pg",FILTER_SANITIZE_NUMBER_INT);
@@ -27,35 +33,72 @@ if(isset($_GET["pg"]))
     $current_page = 1;
   }
 
-  $total_items = get_catalog_count($section);
-  $total_pages = ceil($total_item / $items_per_page);
+  $total_items = get_catalog_count($section, $search);
+  $total_pages = 1;
+  $offset = 0;
+  if ($total_items > 0)
+  {
+    $total_pages = ceil($total_item / $items_per_page);
 
-  //limit results in redirect
-  $limit_results = "";
-  if (!empty($section))
+    //limit results in redirect
+    $limit_results = "";
+    if(!empty($search))
     {
-      $limit_results = "cat=" . $section . "&";
+      $limit_results = "s=".urlencode(htmlspecialchars($search))."&";
     }
+    else if (!empty($section))
+      {
+        $limit_results = "cat=" . $section . "&";
+      }
 
-  //redirect to-large page nubers to the last page
-  if ($current_page > $total_pages)
-    {
-      header("location:catalog.php?"
-        . $limit_results
-        . "pg=".$total_pages);
-    }
-  //redirect too-small page numbers to the first page
-  if ($current_page < 1)
-    {
-      header("location:catalog.php?"
-        . $limit_results
-        . "pg=1");
-    }
-  //determin the offset (number of items to skip) for the current page
-  //for example: on page 3 with 8 items, the offset would be 16.
-  $offset = ($current_page - 1) * $items_per_page;
+    //redirect to-large page nubers to the last page
+    if ($current_page > $total_pages)
+      {
+        header("location:catalog.php?"
+          . $limit_results
+          . "pg=".$total_pages);
+      }
+    //redirect too-small page numbers to the first page
+    if ($current_page < 1)
+      {
+        header("location:catalog.php?"
+          . $limit_results
+          . "pg=1");
+      }
+    //determin the offset (number of items to skip) for the current page
+    //for example: on page 3 with 8 items, the offset would be 16.
+    $offset = ($current_page - 1) * $items_per_page;
 
-if (empty($section))
+    $pagination = "<div class=\"pagination\">";
+    $pagination .= "Pages: ";
+      for ($i = 1; $i <= $total_pages; $i++)
+      {
+        if ($i = $current_page)
+        {
+          $pagination .= " <span>$i</span>";
+        }
+        else
+        {
+          $pagination .= " <a href='catalog.php?";
+          if(!empty($search))
+          {
+            $pagination .= "s=".urlencode(htmlspecialchars($search))."&";
+          }
+          else if(!empty($section))
+          {
+            $pagination .= "cat=" . $section . "&";
+          }
+          $pagination .= "pg=$i'>$i</a>";
+        }
+      }
+    $pagination .= "</div>";
+}
+
+if (!empty($search))
+  {
+    $catalog = search_catalog_array($search,$items_per_page,$offset);
+  }
+  else if (empty($section))
   {
     $catalog = full_catalog_array($items_per_page,$offset);
   }
@@ -64,26 +107,6 @@ if (empty($section))
     $catalog = category_catalog_array($section,$items_per_page,$offset);
   }
 
-$pagination = "<div class=\"pagination\">";
-$pagination .= "Pages: ";
-  for ($i = 1; $i <= $total_pages; $i++)
-  {
-    if ($i = $current_page)
-    {
-      $pagination .= " <span>$i</span>";
-    }
-    else
-    {
-      $pagination .= " <a href='catalog.php?";
-      if(!empty($section))
-      {
-        $pagination .= "cat=" . $section . "&";
-      }
-      $pagination .= "pg=$i'>$i</a>";
-    }
-  }
-$pagination .= "</div>";
-
 include("inc/header.php"); ?>
 
 <div class="section catalog page">
@@ -91,20 +114,41 @@ include("inc/header.php"); ?>
     <div class="wrapper">
 
         <h1><?php
-        if ($section != null) {
-            echo "<a href='catalog.php'>Full Catalog</a> &gt; ";
+        if ($search != null)
+        {
+          echo "Search results for \"".htmlspecialchars($search)."\"";
         }
-        echo $pageTitle; ?></h1>
-        <?php echo $pagination; ?>
+        else
+        {
+          if ($section != null)
+          {
+            echo "<a href='catalog.php'>Full Catalog</a> &gt; ";
+          }
+          echo $pageTitle; ?></h1>
+        }
+
+        <?php
+        if ($total_items < 1)
+        {
+          echo "<p>No items were found matching that search term.</p>";
+          echo "<p>Search again or "
+            . "<a href=\"calalog.php\">browse the full catalog.</a></p>";
+        }
+        else
+        {
+        echo $pagination;
+        ?>
 
         <ul class="items">
             <?php
-            foreach ($catalog as $item) {
-                echo get_item_html($item);
+            foreach ($catalog as $item)
+            {
+              echo get_item_html($item);
             }
             ?>
         </ul>
-        <?php echo $pagination; ?>
+        <?php echo $pagination;
+        } ?>
     </div>
 </div>
 
