@@ -28,16 +28,61 @@ if(isset($_GET["pg"]))
   }
 
   $total_items = get_catalog_count($section);
+  $total_pages = ceil($total_item / $items_per_page);
+
+  //limit results in redirect
+  $limit_results = "";
+  if (!empty($section))
+    {
+      $limit_results = "cat=" . $section . "&";
+    }
+
+  //redirect to-large page nubers to the last page
+  if ($current_page > $total_pages)
+    {
+      header("location:catalog.php?"
+        . $limit_results
+        . "pg=".$total_pages);
+    }
+  //redirect too-small page numbers to the first page
+  if ($current_page < 1)
+    {
+      header("location:catalog.php?"
+        . $limit_results
+        . "pg=1");
+    }
+  //determin the offset (number of items to skip) for the current page
+  //for example: on page 3 with 8 items, the offset would be 16.
+  $offset = ($current_page - 1) * $items_per_page;
 
 if (empty($section))
   {
-    $catalog = full_catalog_array();
+    $catalog = full_catalog_array($items_per_page,$offset);
   }
   else
   {
-    $catalog = category_catalog_array($section);
+    $catalog = category_catalog_array($section,$items_per_page,$offset);
   }
 
+$pagination = "<div class=\"pagination\">";
+$pagination .= "Pages: ";
+  for ($i = 1; $i <= $total_pages; $i++)
+  {
+    if ($i = $current_page)
+    {
+      $pagination .= " <span>$i</span>";
+    }
+    else
+    {
+      $pagination .= " <a href='catalog.php?";
+      if(!empty($section))
+      {
+        $pagination .= "cat=" . $section . "&";
+      }
+      $pagination .= "pg=$i'>$i</a>";
+    }
+  }
+$pagination .= "</div>";
 
 include("inc/header.php"); ?>
 
@@ -50,6 +95,7 @@ include("inc/header.php"); ?>
             echo "<a href='catalog.php'>Full Catalog</a> &gt; ";
         }
         echo $pageTitle; ?></h1>
+        <?php echo $pagination; ?>
 
         <ul class="items">
             <?php
@@ -58,7 +104,7 @@ include("inc/header.php"); ?>
             }
             ?>
         </ul>
-
+        <?php echo $pagination; ?>
     </div>
 </div>
 

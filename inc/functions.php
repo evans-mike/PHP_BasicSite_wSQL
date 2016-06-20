@@ -19,21 +19,20 @@ function get_catalog_count($category = null)
         }
       $result->execute();
     }
-  } catch (Exception $e)
+    catch (Exception $e)
     {
       echo "bad query";
     }
   $count = $result->fetchColumn(0);
   return $count;
+}
 
-function full_catalog_array()
+function full_catalog_array($limit = NULL, $offset = 0)
 {
     include("connection.php");
     try
     {
-        $results = $db->query
-        ("
-            SELECT media_id, title, category, img
+        $sql = "SELECT media_id, title, category, img
             FROM Media
             ORDER BY
             REPLACE(
@@ -44,8 +43,17 @@ function full_catalog_array()
               ),
               'A ',
               ''
-            )
-        ");
+            )";
+        if (is_integer($limit))
+        {
+          $results = $db->prepare($sql . " LIMIT ? OFFSET ?");
+          $results->bindParam(1,$limit,PDO::PARAM_INT);
+          $results->bindParam(2,$offset,PDO::PARAM_INT);
+        }
+        else {
+          $results = $db->prepare($sql);
+        }
+        $results->execute();
     }
     catch(Exception $e)
     {
@@ -57,15 +65,15 @@ function full_catalog_array()
     return $catalog;
 }
 
-function category_catalog_array($category)
+function category_catalog_array($category, $limit = NULL, $offset = 0)
 {
     include("connection.php");
     $category = strtolower($category);
     try
     {
-        $results = $db->prepare
-        ("
-            SELECT media_id, title, category, img
+
+        $sql =
+            "SELECT media_id, title, category, img
             FROM Media
             WHERE LOWER(category) = ?
             ORDER BY
@@ -77,9 +85,18 @@ function category_catalog_array($category)
               ),
               'A ',
               ''
-            )
-        ");
-        $results->bindParam(1,$category,PDO::PARAM_STR);
+        )";
+        if (is_integer($limit))
+        {
+          $results = $db->prepare($sql . " LIMIT ? OFFSET ?");
+          $results->bindParam(1,$category,PDO::PARAM_STR);
+          $results->bindParam(2,$limit,PDO::PARAM_INT);
+          $results->bindParam(3,$offset,PDO::PARAM_INT);
+        }
+        else {
+          $results = $db->prepare($sql);
+          $results->bindParam(1,$category,PDO::PARAM_STR);
+        }
         $results->execute();
     }
     catch(Exception $e)
